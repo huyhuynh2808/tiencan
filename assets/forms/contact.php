@@ -1,44 +1,70 @@
 <?php
-  /**
-  * Requires the "PHP Email Form" library
-  * The "PHP Email Form" library is available only in the pro version of the template
-  * The library should be uploaded to: vendor/php-email-form/php-email-form.php
-  * For more info and help: https://bootstrapmade.com/php-email-form/
-  */
+// Cho phép CORS và POST
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Content-Type: application/json; charset=utf-8');
 
-  // Replace contact@example.com with your real receiving email address
-  $receiving_email_address = 'huyhuynh28082002@gmail.com';
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
-  if( file_exists($php_email_form = '../assets/vendor/php-email-form/php-email-form.php' )) {
-    include( $php_email_form );
-  } else {
-    die( 'Unable to load the "PHP Email Form" Library!');
-  }
+require '../vendor/PHPMailer/Exception.php';
+require '../vendor/PHPMailer/PHPMailer.php';
+require '../vendor/PHPMailer/SMTP.php';
 
-  $contact = new PHP_Email_Form;
-  $contact->ajax = true;
-  
-  $contact->to = $receiving_email_address;
-  $contact->from_name = $_POST['name'];
-  $contact->from_email = $_POST['email'];
-  $contact->subject = $_POST['subject'];
+// Cấu hình email
+$receiving_email_address = 'huyhuynh28082002@gmail.com'; // Email nhận thông báo
 
-$contact->smtp = array(
-  'host' => 'smtp.gmail.com', // Thay bằng host SMTP của nhà cung cấp email của bạn
-  'username' => 'huyhuynh28082002@gmail.com', // Thay bằng địa chỉ email đầy đủ của bạn
-  'password' => 'vlbv hhhe zyff riva', // Thay bằng mật khẩu (hoặc mật khẩu ứng dụng nếu dùng Gmail)
-  'port' => '587', // Thường là 587 cho TLS hoặc 465 cho SSL
-  'encryption' => 'tls' // Thêm dòng này nếu cần (hoặc 'ssl')
-);
+// Kiểm tra và xử lý dữ liệu form
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $name = $_POST['name'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $subject = $_POST['subject'] ?? '';
+    $message = $_POST['message'] ?? '';
 
-  $contact->add_message( $_POST['name'], 'From');
-  $contact->add_message( $_POST['email'], 'Email');
-  $contact->add_message( $_POST['message'], 'Message', 10);
+    // Kiểm tra dữ liệu
+    if (empty($name) || empty($email) || empty($subject) || empty($message)) {
+        echo json_encode(['status' => 'error', 'message' => 'Vui lòng điền đầy đủ thông tin']);
+        exit;
+    }
 
-  echo $contact->send();
-  if ($contact->send()) {
-  echo 'Gửi thành công';
+    try {
+        $mail = new PHPMailer(true);
+
+        // Cấu hình server
+        $mail->isSMTP();
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'huyhuynh28082002@gmail.com'; // Email Gmail của bạn
+        $mail->Password = 'tcor oetu thjk dari'; // Mật khẩu ứng dụng Gmail (16 ký tự)
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = 587;
+        $mail->CharSet = 'UTF-8';
+
+        // Người gửi và người nhận
+        $mail->setFrom($email, $name);
+        $mail->addAddress($receiving_email_address);
+
+        // Nội dung email
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body = "
+            <html>
+            <body>
+                <h2>Thông tin liên hệ mới</h2>
+                <p><strong>Tên:</strong> $name</p>
+                <p><strong>Email:</strong> $email</p>
+                <p><strong>Chủ đề:</strong> $subject</p>
+                <p><strong>Nội dung:</strong><br>$message</p>
+            </body>
+            </html>";
+
+        $mail->send();
+        echo json_encode(['status' => 'success', 'message' => 'Tin nhắn của bạn đã được gửi thành công!']);
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => 'Có lỗi xảy ra khi gửi tin nhắn: ' . $mail->ErrorInfo]);
+    }
 } else {
-  echo 'Gửi thất bại';
+    echo json_encode(['status' => 'error', 'message' => 'Phương thức không hợp lệ']);
 }
 ?>
